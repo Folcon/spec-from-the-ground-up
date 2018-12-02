@@ -97,6 +97,10 @@ Spec provides facilities for composing your specs:
 
 ### Exercises
 - a spec for a number that is divisible by three
+  (s/def ::divisible-by-3 #(= 0 (mod % 3))
 - a spec for that a value can only be the name of the chess pieces
+  (s/def ::chess-piece-name #{:king :queen :bishop :knight :castle :pawn})
 - single words that are longer than 5 letters
+  (s/def ::word-longer-than-5-letters #(and (re-matches #"[A-Za-z]+" %) (> (count %) 5))
 - a spec for UK postcodes
+
