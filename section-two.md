@@ -52,7 +52,9 @@ allows you to specify unqualified keywords:
 (s/def ::error string?)
 (s/def ::warning string?)
 (s/def ::slack-web-api-response (s/keys :req-un [::ok] :opt-un [::error ::warning]))
-(s/valid? ::slack-web)
+(s/valid? ::slack-web-api-response {:ok false :error "something went wrong"})
+(s/valid? ::slack-web-api-response {:ok true})
+(s/valid? ::slack-web-api-response {:ok false :warning "err"})
 ```
 
 `s/keys` will check the value assigned to any key against a registered spec of
@@ -120,6 +122,9 @@ named positional elements:
 ### Exercises
 - using `s/or` and conform, set up a spec `::fizzbuzz` which will conform any
   input with its fizzbuzz outcome
+  (s/def ::fizz #(zero? (mod % 3)))
+  (s/def ::buzz #(zero? (mod % 5)))
+  (s/def ::fizzbuzz (s/or ::fizzbuzz (s/and ::fizz ::buzz) ::fizz ::fizz ::buzz ::buzz ::default number?))
 - in the same namespace define specs for which these are valid:
 ```clj
 (def map-1 {:number/a 1})
@@ -130,12 +135,52 @@ named positional elements:
 
 (s/valid? ::map-1 map-1) ;;=> true
 ```
+  (s/def :number/a int?)
+  (s/def ::map-1 (s/keys :req [:number/a]))
+
+  (s/def :string/a string?)
+  (s/def ::map-2 (s/keys :req [:string/a]))
+
+  (s/def :string/b string?)
+  (s/def ::map-3 (s/keys :req [:number/a] :req-un [:string/b]))
+
+  (s/def :number/b number?)
+  (s/def ::map-4 (s/keys :opt [:number/b] :req-un [:string/a]))
+
+  (s/def ::map-5 ::map-4)
+
 - define a ::normalized-vector spec that describes a vector of fractional
   numbers that sums up to one
+  (s/def ::vector vector?)
+  (s/def ::coll-of-ratios (s/coll-of ratio?))
+  (s/def ::normalized-vector (s/and ::vector ::coll-of-ratios #(= 1 (apply + %))))
+  (s/def ::normalized-vector (s/and ::vector (s/coll-of ratio?) #(= 1 (apply + %))))
+
+  ;; this will be marked true because the function returns a spec, the actual spec isn't checked
+  (s/def ::normalized-vector #(s/and ::vector (s/coll-of ratio?) (= 1 (apply + %))))
+
 - using `s/cat` define a seq of command-line option flags to value pairs:
 ```clj
 (s/valid? ::cli-option-pairs ["-server" "foo" "-verbose" true "-user" "joe"])
 ```
+  (s/def ::server-opt  (s/cat ::server      #{"-server"}
+                              ::server-arg  string?))
+  (s/def ::verbose-opt (s/cat ::verbose     #{"-verbose"}
+                              ::verbose-arg boolean?))
+  (s/def ::user-opt (s/cat ::user        #{"-user"}
+                           ::user-arg    string?))
+  (s/def ::opt (s/alt :server-opt ::server-opt :verbose-opt ::verbose-opt :user-opt ::user-opt))
+  (s/def ::cli-option-pairs (s/* ::opt))
+
 - spec a CSV-like input [1 "foo" "2018-01-01"] using `s/coll-of` and `s/cat`
+  (s/def ::id int?)
+  (s/def ::value string?)
+  (s/def ::date  string?)
+  (s/def ::row   (s/cat :id ::id :value ::value :date ::date))
+  (s/def ::csv (s/coll-of ::row))
+
+  #_#_=> (s/valid? ::csv [[1 "foo" "2018-01-01"]])
+  #_#_=> true
+
 - what happens when you use `s/*` or `s/+` instead of `s/coll-of`, and why?
 - spec a ring-like HTTP req object
